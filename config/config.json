@@ -1,0 +1,13 @@
+{
+  "db_path": "data/certify.db",
+  "master_dataset_path": "data/master_dataset.xlsx",
+
+  "pdf_folder": "output/pdf_storage",
+  "download_folder": "output/downloaded",
+  "draft_folder": "output/drafts",
+  "email_folder": "output/email_queue",
+  "testing_mode": true,
+  "test_email": "nandita24102@iiitnr.edu.in",
+  "email_subject": "Internship Certificate - {student_name}",
+  "email_body": "Dear {student_name},\n\nCongratulations on completing your internship!\n\nPlease find your certificate of completion attached to this email.\n\nBest regards,\nCertifyX Team"
+}

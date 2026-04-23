@@ -1,0 +1,26 @@
+{
+  "certificate_template": "OIP Certificate Format - 2.docx",
+  "placeholders": {
+    "{{Student_Name}}": "student_name",
+    "{{Father_Name}}": "father_name",
+    "{{department}}": "department",
+    "{{Department}}": "department",
+    "{{Institute_Name}}": "institute_name",
+    "{{NO_OF_WEEKS}}": "no_of_weeks",
+    "{{Internship_Start_Date}}": "internship_start_date",
+    "{{Internship_End_Date}}": "internship_end_date",
+    "{{Supervisor_Name}}": "supervisor_name",
+    "{{Focused_On}}": "focused_on",
+    "{{Contributed_Towards}}": "contributed_towards"
+  },
+  "required_fields": [
+    "student_name",
+    "supervisor_name",
+    "internship_start_date",
+    "internship_end_date"
+  ],
+  "convert_to_words": [
+    "no_of_weeks"
+  ],
+  "date_format": "%d. %m. %Y"
+}

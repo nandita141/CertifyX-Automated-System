@@ -1,0 +1,32 @@
+# Security
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# IDEs
+.vscode/
+.idea/
+
+# Data & Excel (Strict Ignore)
+*.xlsx
+*.xls
+*.csv
+data/
+*.sqlite
+*.db
+
+
+# Official Templates & Documents (Security)
+templates/
+*.docx
+*.pdf
+
+# Project Specific
+output/
+
+

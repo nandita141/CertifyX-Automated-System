@@ -1,0 +1,9 @@
+flask
+pandas
+openpyxl
+python-docx
+docx2pdf
+num2words
+pywin32
+mysql-connector-python
+python-dotenv

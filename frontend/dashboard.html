@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certificate Dashboard | CertifyX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Link to external CSS -->
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+
+<body>
+
+  <div class="container">
+    <header class="header">
+      <div class="header-brand">
+        <div class="logo-container">
+          <img src="logo.png" alt="IIITNR Logo" class="main-logo">
+        </div>
+        <div class="header-text">
+          <h1>Certify X</h1>
+          <p>Internship Certificate Portal | IIIT Naya Raipur</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="status-badge">
+          <span class="pulse-dot"></span>
+          System Online
+        </div>
+      </div>
+    </header>
+
+    <div id="message" class="message"></div>
+
+    <div class="dashboard-layout">
+      <div class="main-content">
+
+        <!-- Quick Actions Grouped -->
+        <div class="quick-actions">
+          <!-- Generate Group -->
+          <div class="action-header">
+            <div class="action-title">Certificate Generation</div>
+            <p class="action-desc">Click 'Generate All' to process all verified student records in bulk, or provide specific Application IDs below for targeted generation.</p>
+          </div>
+          <div class="action-row">
+            <button class="action-btn btn-generate" onclick="generateAllCertificates()" id="gen-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              Generate All
+            </button>
+            <input type="text" id="specific-id-input" placeholder="Application IDs (e.g. 101, 102)">
+            <button class="action-btn btn-generate" onclick="generateSpecificCertificate()" id="gen-spec-btn"
+              style="background: var(--primary);">
+              Generate Specific
+            </button>
+          </div>
+
+          <!-- Email Group -->
+          <div class="action-header">
+            <div class="action-title">Communication & Emailing</div>
+            <p class="action-desc">Click 'Bulk Send' to email all generated certificates globally, or enter specific IDs to contact individuals. 'Gen & Send' will automatically create missing PDFs.</p>
+          </div>
+          <div class="action-row">
+            <button class="action-btn btn-email" onclick="emailAllCertificates()" id="email-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              Bulk Send (All)
+            </button>
+            <input type="text" id="email-specific-id-input" placeholder="Application IDs (e.g. 101, 102)">
+            <button class="action-btn btn-email" onclick="emailSpecificCertificates()" id="email-spec-btn">
+              Email Only
+            </button>
+            <button class="action-btn btn-email-special" onclick="generateAndEmailSpecific()" id="gen-email-btn">
+              Gen & Send
+            </button>
+          </div>
+
+          <!-- Utility Utilities -->
+          <div class="action-header">
+            <div class="action-title">Access & Downloads</div>
+            <p class="action-desc">Click 'ZIP All' to package all files for download, or enter an ID to get a specific certificate. Use the folder buttons to access internal system storage.</p>
+          </div>
+          <div class="action-row" style="background: transparent; border: none; padding: 0;">
+            <button class="action-btn btn-download" onclick="downloadAllCertificates()" id="dl-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              ZIP All
+            </button>
+            <input type="text" id="download-specific-id-input" placeholder="Application ID">
+            <button class="action-btn btn-download" onclick="downloadSpecificCertificate()" id="dl-spec-btn">
+              Download ID
+            </button>
+            <button class="action-btn btn-view" onclick="openGeneratedModal()">
+              View Generated
+            </button>
+            <button class="action-btn btn-view" onclick="openDownloadedModal()">
+              View Downloaded
+            </button>
+          </div>
+        </div>
+
+        <!-- Statistics Overview -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Students</div>
+            <div class="stat-number" id="total-students">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Ready</div>
+            <div class="stat-number" id="complete-data">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Generated</div>
+            <div class="stat-number" id="generated">0</div>
+          </div>
+          <div class="stat-card downloaded">
+            <div class="stat-label">Downloaded</div>
+            <div class="stat-number" id="downloaded">0</div>
+          </div>
+          <div class="stat-card emailed">
+            <div class="stat-label">Emailed</div>
+            <div class="stat-number" id="emailed">0</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Activity Sidebar -->
+      <aside class="sidebar">
+        <div class="section" style="margin-bottom: 0;">
+          <h2>Live System Activity</h2>
+          <div id="activity-log" class="activity-log">
+            <div style="text-align: center; padding: 3rem; color: #94a3b8;">
+              <div class="spinner" style="margin: 0 auto 1rem;"></div>
+              Connecting to system logs...
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+
+  <!-- Generated Certificates Modal -->
+  <div id="generatedModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Generated Certificates (Storage)</h2>
+        <button class="modal-close" onclick="closeGeneratedModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <button class="btn-open-folder" onclick="openFolder('generated')" style="margin-bottom: 20px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+          Open System Folder
+        </button>
+        <div id="generated-folder" class="files-grid">
+          <div class="empty-state">
+            <div class="empty-icon"></div>
+            <div>No certificates generated yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Downloaded Certificates Modal -->
+  <div id="downloadedModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Downloaded Certificates (Storage)</h2>
+        <button class="modal-close" onclick="closeDownloadedModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <button class="btn-open-folder" onclick="openFolder('downloaded')" style="margin-bottom: 20px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+          Open System Folder
+        </button>
+        <div id="downloaded-folder" class="files-grid">
+          <div class="empty-state">
+            <div class="empty-icon"></div>
+            <div>No downloads yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Link to external JS -->
+  <script src="js/dashboard.js"></script>
+</body>
+
+</html>

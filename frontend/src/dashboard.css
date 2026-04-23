@@ -1,0 +1,65 @@
+.dashboard {
+  min-height: 100vh;
+  padding: 40px;
+  font-family: Arial;
+  background: #f4f6fb;
+}
+
+.dashboard h1 {
+  margin-bottom: 20px;
+}
+
+.actions {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.btn {
+  padding: 12px 22px;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.purple { background: #7c3aed; }
+.green { background: #16a34a; }
+.orange { background: #ea580c; }
+
+.folders {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.folder {
+  background: white;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.folder h3 {
+  margin-bottom: 10px;
+}
+
+.folder p {
+  font-size: 30px;
+  font-weight: bold;
+}
+
+.logs {
+  background: white;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}

@@ -1,0 +1,21 @@
+{
+  "merge_key": "student_id",
+
+  "student_column_map": {
+    "student_id": "student_id",
+    "student_name": "student_name",
+    "father_name": "father_name",
+    "Programme": "Programme",
+    "department": "department",
+    "institute_name": "institute_name",
+    "AddressofCom": "AddressofCom",
+    "student_email": "",
+    "student_contact": "student_contact"
+  },
+
+  "supervisor_column_map": {
+    "student_id": "student_id",
+    "supervisor_name": "supervisor_name",
+    "supervisor_email": "supervisor_email"
+  }
+}
