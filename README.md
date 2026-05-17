@@ -24,7 +24,17 @@ Integrated with **MySQL** for robust data persistence and featuring a **Real-tim
 - **Data Handling**: Pandas, Pathlib
 - **Email**: SMTP, SSL/TLS, MIME Protocol
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript (Modern Glassmorphism UI)
-- **Automation**: Docx-Mailmerge, Python-comtypes
+- **Automation**: `python-docx` (Word Manipulation), `docx2pdf` & `pywin32` (Windows COM rendering)
+
+---
+
+## System Requirements
+
+> [!IMPORTANT]
+> The PDF conversion engine relies on native Windows APIs and Microsoft Office.
+> - **Operating System**: Windows 10/11 (Strictly required for PDF generation).
+> - **Software**: Microsoft Word must be installed and activated on the host machine.
+
 
 ---
 
