@@ -12,6 +12,7 @@ import pandas as pd
 from pathlib import Path
 from datetime import datetime
 from docx import Document
+from docx.shared import Pt
 try:
     from num2words import num2words
 except ImportError:
@@ -45,6 +46,13 @@ class CertificateGenerator:
             self.placeholders = self.cert_config["placeholders"]
             self.required_fields = self.cert_config.get("required_fields", [])
             self.activity_log_file = self.base_dir / "output" / "certificate_generation_log.json"
+            
+            # Load official professor list for name expansion
+            self.professors_file = self.base_dir / "config/professors.json"
+            self.official_professors = []
+            if self.professors_file.exists():
+                with open(self.professors_file, 'r') as f:
+                    self.official_professors = json.load(f)
             
         except Exception as e:
             print(f" Configuration error: {e}")
@@ -125,11 +133,42 @@ class CertificateGenerator:
                 return self._num_to_words(val)
 
             # Format Dates
+            date_fmt = self.cert_config.get("date_format", "%d/%m/%Y")
+            
             if isinstance(val, (pd.Timestamp, datetime)):
-                date_fmt = self.cert_config.get("date_format", "%d. %m. %Y")
                 return val.strftime(date_fmt)
+                
+            if "date" in column.lower() and isinstance(val, str):
+                try:
+                    # Parse string (e.g., '2023-05-22') and format it
+                    parsed_date = pd.to_datetime(val)
+                    return parsed_date.strftime(date_fmt)
+                except Exception:
+                    pass
 
-            return str(val)
+            result_str = str(val)
+            
+            if column in self.cert_config.get("force_uppercase", []):
+                return result_str.upper()
+                
+            if column == "supervisor_name" and result_str:
+                # Try to expand shortened names using official list
+                for full_name in self.official_professors:
+                    if result_str.lower() in full_name.lower():
+                        return full_name
+            
+            if column in ["focused_on", "contributed_towards"] and result_str:
+                stop_words = {"and", "or", "the", "a", "an", "in", "on", "at", "to", "for", "of", "with", "by"}
+                words = result_str.split()
+                title_words = []
+                for i, word in enumerate(words):
+                    if i > 0 and word.lower() in stop_words:
+                        title_words.append(word.lower())
+                    else:
+                        title_words.append(word.capitalize())
+                return " ".join(title_words)
+
+            return result_str
 
         except Exception:
             return ""
@@ -181,55 +220,91 @@ class CertificateGenerator:
             
             break # No more split placeholders found
 
-    def _replace_in_paragraph(self, paragraph, replacements):
-        """Apply replacements to a single paragraph, preserving formatting."""
-        if not paragraph.text:
-            return
+    def _replace_in_paragraph(self, paragraph, replacements, bold_tnr_keys=None, bold_calibri_keys=None):
+        """
+        Apply replacements run-by-run to perfectly preserve the original styling 
+        of static text (like quotation marks) that might be in different fonts.
+        """
+        import re
         
-        # 1. Fix split tags
-        self._fix_broken_placeholders(paragraph)
-
-        # 2. Check if replacements needed
         if not any(key in paragraph.text for key in replacements):
             return
 
-        # 3. Replace in preserved runs (ideal case)
-        for run in paragraph.runs:
-            for key, val in replacements.items():
-                if key in run.text:
-                    run.text = run.text.replace(key, str(val))
+        self._fix_broken_placeholders(paragraph)
         
-        # 4. Fallback: Full paragraph replacement (if runs failed)
-        current_text = paragraph.text
-        if any(key in current_text for key in replacements):
-            
-            # Capture style of first run as best guess
-            style_data = {}
-            if paragraph.runs:
-                r0 = paragraph.runs[0]
-                style_data = {
-                    'name': r0.font.name,
-                    'size': r0.font.size,
-                    'bold': r0.font.bold,
-                    'italic': r0.font.italic,
-                    'underline': r0.font.underline,
-                    'color': r0.font.color.rgb if r0.font.color and r0.font.color.type == 1 else None
-                }
+        sorted_keys = sorted(replacements.keys(), key=len, reverse=True)
+        pattern = "|".join(re.escape(k) for k in sorted_keys)
+        
+        new_runs_data = []
+        
+        for run in paragraph.runs:
+            if not any(key in run.text for key in replacements):
+                new_runs_data.append({
+                    'text': run.text,
+                    'bold': run.font.bold,
+                    'italic': run.font.italic,
+                    'name': run.font.name,
+                    'size': run.font.size
+                })
+                continue
+                
+            last_idx = 0
+            for match in re.finditer(pattern, run.text):
+                start, end = match.span()
+                
+                # Add preceding static text with original run's formatting
+                if start > last_idx:
+                    new_runs_data.append({
+                        'text': run.text[last_idx:start],
+                        'bold': run.font.bold,
+                        'italic': run.font.italic,
+                        'name': run.font.name,
+                        'size': run.font.size
+                    })
+                
+                key = match.group()
+                val = str(replacements[key])
+                is_tnr_bold = bold_tnr_keys and key in bold_tnr_keys
+                is_calibri_bold = bold_calibri_keys and key in bold_calibri_keys
+                is_bold = is_tnr_bold or is_calibri_bold
+                
+                # Period grouping logic (if period is inside the same run)
+                next_chars = run.text[end:end+2]
+                if is_bold and next_chars.startswith('.'):
+                    val += "."
+                    last_idx = end + 1
+                else:
+                    last_idx = end
+                    
+                # Add the replacement text with special formatting
+                new_runs_data.append({
+                    'text': val,
+                    'bold': True if is_bold else run.font.bold,
+                    'italic': run.font.italic,
+                    'name': 'Times New Roman' if is_tnr_bold else ('Calibri' if is_calibri_bold else run.font.name),
+                    'size': Pt(14) if is_bold else run.font.size
+                })
+                
+            # Add any remaining static text in the run
+            if last_idx < len(run.text):
+                new_runs_data.append({
+                    'text': run.text[last_idx:],
+                    'bold': run.font.bold,
+                    'italic': run.font.italic,
+                    'name': run.font.name,
+                    'size': run.font.size
+                })
 
-            # Perform text replacement
-            for key, val in replacements.items():
-                current_text = current_text.replace(key, str(val))
-            paragraph.text = current_text
-            
-            # Re-apply style
-            if paragraph.runs and style_data:
-                new_run = paragraph.runs[0]
-                if style_data.get('name'): new_run.font.name = style_data['name']
-                if style_data.get('size'): new_run.font.size = style_data['size']
-                if style_data.get('bold') is not None: new_run.font.bold = style_data['bold']
-                if style_data.get('italic') is not None: new_run.font.italic = style_data['italic']
-                if style_data.get('underline') is not None: new_run.font.underline = style_data['underline']
-                if style_data.get('color'): new_run.font.color.rgb = style_data['color']
+        # 3. Clear existing runs and rebuild
+        paragraph.text = ""
+        for r_data in new_runs_data:
+            if not r_data['text']:
+                continue
+            run = paragraph.add_run(r_data['text'])
+            if r_data['bold'] is not None: run.font.bold = r_data['bold']
+            if r_data['italic'] is not None: run.font.italic = r_data['italic']
+            if r_data['name'] is not None: run.font.name = r_data['name']
+            if r_data['size'] is not None: run.font.size = r_data['size']
 
     def create_docx(self, row, student_id):
         """Generate a single DOCX certificate for a student."""
@@ -245,23 +320,38 @@ class CertificateGenerator:
                 for tag, col in self.placeholders.items()
             }
             
-            # Autamatically fill issue date with the current date
-            today_date = datetime.now().strftime(self.cert_config.get("date_format", "%d. %m. %Y"))
-            replacements["{{issue_date}}"] = today_date
-            replacements["{{Issue_Date}}"] = today_date
-            replacements["{{Issue_date}}"] = today_date
-            replacements["{{ISSUE_DATE}}"] = today_date
+            # Automatically fill issue date with the current date in specific format (DD. MM. YYYY)
+            today_date_issue = datetime.now().strftime("%d. %m. %Y")
+            replacements["{{issue_date}}"] = today_date_issue
+            replacements["{{Issue_Date}}"] = today_date_issue
+            replacements["{{Issue_date}}"] = today_date_issue
+            replacements["{{ISSUE_DATE}}"] = today_date_issue
+            
+            # Prepare bold keys based on config
+            bold_tnr_keys = set()
+            bold_calibri_keys = set()
+            for tag, col in self.placeholders.items():
+                is_forced_upper = col in self.cert_config.get("force_uppercase", [])
+                is_forced_bold = col in self.cert_config.get("force_bold", [])
+                
+                if col in ["focused_on", "contributed_towards"]:
+                    bold_calibri_keys.add(tag)  # Set to Calibri instead of TNR
+                else:
+                    if is_forced_bold:
+                        bold_tnr_keys.add(tag)
+                    if is_forced_upper:
+                        bold_calibri_keys.add(tag)
             
             # Apply to body
             for p in doc.paragraphs:
-                self._replace_in_paragraph(p, replacements)
+                self._replace_in_paragraph(p, replacements, bold_tnr_keys, bold_calibri_keys)
 
             # Apply to tables
             for table in doc.tables:
                 for row_obj in table.rows:
                     for cell in row_obj.cells:
                         for p in cell.paragraphs:
-                            self._replace_in_paragraph(p, replacements)
+                            self._replace_in_paragraph(p, replacements, bold_tnr_keys, bold_calibri_keys)
             
             output_path = self.docx_folder / f"{student_id}_certificate.docx"
             doc.save(output_path)
@@ -277,12 +367,56 @@ class CertificateGenerator:
     
 
     def batch_convert_pdf(self, source_dir, output_dir):
-        """Convert all DOCX files in a folder to PDF using docx2pdf."""
+        """Convert all DOCX files in a folder to PDF using win32com for maximum image quality."""
         try:
-            from docx2pdf import convert
-            print(f"Converting files in {source_dir} to PDF...")
-            convert(str(source_dir), str(output_dir))
-            return True, None
+            import win32com.client
+            import pythoncom
+            from pathlib import Path
+            
+            # Initialize COM in the current thread
+            pythoncom.CoInitialize()
+            
+            print(f"Converting files in {source_dir} to PDF (High Quality Mode)...")
+            
+            # Use DispatchEx to get a clean Word instance
+            word = win32com.client.DispatchEx("Word.Application")
+            word.Visible = False
+            
+            wdFormatPDF = 17
+            wdExportOptimizeForPrint = 0
+            
+            source_path = Path(source_dir).resolve()
+            output_path = Path(output_dir).resolve()
+            
+            success = True
+            for docx_file in source_path.glob("*.docx"):
+                pdf_file = output_path / (docx_file.stem + ".pdf")
+                try:
+                    doc = word.Documents.Open(str(docx_file), ReadOnly=True)
+                    # ExportAsFixedFormat explicitly forces high-quality print optimization
+                    doc.ExportAsFixedFormat(
+                        OutputFileName=str(pdf_file),
+                        ExportFormat=wdFormatPDF,
+                        OpenAfterExport=False,
+                        OptimizeFor=wdExportOptimizeForPrint,
+                        Range=0,  # wdExportAllDocument
+                        Item=0,   # wdExportDocumentContent
+                        IncludeDocProps=True,
+                        KeepIRM=True,
+                        CreateBookmarks=0,  # wdExportCreateNoBookmarks
+                        DocStructureTags=True,
+                        BitmapMissingFonts=True,
+                        UseISO19005_1=False
+                    )
+                    doc.Close(False)
+                except Exception as e:
+                    print(f"Error converting {docx_file.name}: {e}")
+                    success = False
+                    
+            word.Quit()
+            pythoncom.CoUninitialize()
+            return success, None
+            
         except Exception as e:
             print(f"Batch conversion failed: {e}")
             return False, str(e)

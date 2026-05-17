@@ -98,18 +98,18 @@ def submit_form():
 def get_supervisors():
     """
     Returns a unique list of supervisors for the dropdown in the form.
+    Exclusively uses the official list from config/professors.json.
     """
     try:
-        conn = db.get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT DISTINCT supervisor_name FROM students WHERE supervisor_name IS NOT NULL")
-        rows = cursor.fetchall()
-        conn.close()
-        
-        list_of_supervisors = [r['supervisor_name'] for r in rows if r['supervisor_name']]
-        list_of_supervisors.sort()
-        
-        return jsonify(list_of_supervisors)
+        # Load official list from JSON
+        prof_file = BASE_DIR / "config/professors.json"
+        if prof_file.exists():
+            with open(prof_file, "r") as f:
+                official_list = json.load(f)
+        else:
+            official_list = []
+
+        return jsonify(official_list)
         
     except Exception as e:
         print(f"Error fetching supervisors: {e}")

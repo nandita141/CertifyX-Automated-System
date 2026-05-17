@@ -22,5 +22,17 @@
   "convert_to_words": [
     "no_of_weeks"
   ],
-  "date_format": "%d. %m. %Y"
+  "date_format": "%d/%m/%Y",
+  "force_uppercase": [
+    "student_name",
+    "father_name",
+    "department",
+    "institute_name"
+  ],
+  "force_bold": [
+    "focused_on",
+    "contributed_towards",
+    "supervisor_name",
+    "no_of_weeks"
+  ]
 }

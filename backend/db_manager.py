@@ -136,7 +136,7 @@ class DatabaseManager:
             
             # Basic cleanup
             if 'student_id' not in df.columns:
-                print("❌ Fatal: Master dataset missing 'student_id' column")
+                print("Fatal: Master dataset missing 'student_id' column")
                 return False
                 
             df['student_id'] = df['student_id'].astype(str)
@@ -154,7 +154,7 @@ class DatabaseManager:
                 
                 cursor = conn.cursor()
                 cursor.execute("SELECT 1 FROM students WHERE student_id = %s", (student_id,))
-                check = cursor.fetchone()
+                check = cursor.fetchone() 
                 
                 cols = list(filtered_info.keys())
                 vals = [filtered_info[k] for k in cols]

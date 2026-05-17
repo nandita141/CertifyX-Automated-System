@@ -64,7 +64,7 @@ def run_mailing():
     
     # Check if we're in testing mode
     if service.testing_mode:
-        print(f"⚠️  TESTING MODE ENABLED: Emails are being redirected safely to the configured test address.")
+        print(f"TESTING MODE ENABLED: Emails are being redirected safely to the configured test address.")
     
     student_ids = sys.argv[2:] if len(sys.argv) > 2 else None
     if student_ids:

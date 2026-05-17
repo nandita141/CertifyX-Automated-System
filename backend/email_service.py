@@ -228,6 +228,15 @@ class EmailService:
                 sname = row.get("student_name", "Student")
                 semail = row.get("student_email", "")
                 
+                # Check if email is already sent
+                if row.get("email_sent") == 1:
+                    self.log_activity("email_skipped", {
+                        "student_id": sid, 
+                        "student_name": sname, 
+                        "reason": "Email already sent previously."
+                    })
+                    continue
+                
                 # Check if PDF exists before attempting to send
                 pdf_path = self.pdf_folder / f"{sid}_certificate.pdf"
                 
