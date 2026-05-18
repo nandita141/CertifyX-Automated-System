@@ -462,6 +462,9 @@ class CertificateGenerator:
 
             if not students_to_process:
                  conn.close()
+                 self.log_activity("batch_conversion_failed", {
+                     "error": f"No student records found or complete for IDs: {', '.join(student_ids) if student_ids else 'All'}. Ensure the student has submitted the form and all fields are complete."
+                 })
                  return {"status": "success", "message": "No students found matching the criteria (Ensure IDs are correct and fields complete)"}
 
             # STEP 1: Generate DOCX

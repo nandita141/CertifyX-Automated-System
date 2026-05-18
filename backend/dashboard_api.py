@@ -61,8 +61,9 @@ def get_stats():
         cursor.execute("SELECT COUNT(*) FROM students WHERE is_complete = 1")
         students_complete = cursor.fetchone()[0]
         
-        # Count generated PDFs from both folders
-        generated_count = len(list(GENERATED_DIR.glob("*.pdf"))) + len(list(INDIVIDUAL_DIR.glob("*.pdf")))
+        # Count generated from database (unique students)
+        cursor.execute("SELECT COUNT(*) FROM students WHERE certificate_generated = 1")
+        generated_count = cursor.fetchone()[0]
         
         # Count downloaded
         downloaded_count = len(list(DOWNLOAD_DIR.glob("*.pdf"))) + len(list(DOWNLOAD_DIR.glob("*.zip")))
@@ -159,10 +160,10 @@ def generate_all():
         data = request.get_json(silent=True) or {}
         student_id_input = data.get("student_id")
         
-        # Support comma-separated IDs
+        # Support comma-separated IDs and remove all spaces (e.g. "202 52217" -> "20252217")
         student_ids = None
         if student_id_input and isinstance(student_id_input, str):
-            student_ids = [s.strip() for s in student_id_input.split(",")]
+            student_ids = [s.replace(" ", "") for s in student_id_input.split(",") if s.strip()]
             
         print(f"\n API: Starting certificate generation (Threaded)... Target: {student_ids if student_ids else 'All'}")
         
@@ -210,7 +211,7 @@ def generate_email():
         student_ids = data.get("student_ids") # Can be single or comma separated
         
         if student_ids and isinstance(student_ids, str):
-            student_ids = [s.strip() for s in student_ids.split(",")]
+            student_ids = [s.replace(" ", "") for s in student_ids.split(",") if s.strip()]
         
         print(f"\n API: Starting generation + email... Target: {student_ids if student_ids else 'All'}")
         
@@ -255,7 +256,7 @@ def send_email():
         student_ids = data.get("student_ids")
         
         if student_ids and isinstance(student_ids, str):
-            student_ids = [s.strip() for s in student_ids.split(",")]
+            student_ids = [s.replace(" ", "") for s in student_ids.split(",") if s.strip()]
             
         print(f"\n API: Sending core emails... Target: {student_ids if student_ids else 'All'}")
         
@@ -313,10 +314,12 @@ def download_all():
 def download_certificate(student_id):
     """Download certificate for a specific student (PDF or DOCX fallback)"""
     try:
-        # Try PDF first
+        # Try PDF first in both generated and individual folders
         pdf_file = GENERATED_DIR / f"{student_id}_certificate.pdf"
+        if not pdf_file.exists():
+            pdf_file = INDIVIDUAL_DIR / f"{student_id}_certificate.pdf"
+            
         target_file = None
-        
         if pdf_file.exists():
             target_file = pdf_file
         else:
@@ -400,7 +403,13 @@ def delete_file():
              
         # Determine directory
         if file_type == "generated":
-            target_dir = GENERATED_DIR
+            # Check GENERATED_DIR first, then INDIVIDUAL_DIR
+            if (GENERATED_DIR / filename).exists():
+                target_dir = GENERATED_DIR
+            elif (INDIVIDUAL_DIR / filename).exists():
+                target_dir = INDIVIDUAL_DIR
+            else:
+                target_dir = GENERATED_DIR # Fallback
         elif file_type == "downloaded":
             target_dir = DOWNLOAD_DIR
         elif file_type == "email":
@@ -436,7 +445,7 @@ def delete_file():
 
 @dashboard_api.route("/api/dashboard/files", methods=["GET"])
 def list_files():
-    """Return list of generated, downloaded, and email draft files with URLs"""
+    """Return list of generated, individual, downloaded, and email draft files with URLs"""
     try:
         generated = []
         # Include PDFs from 'generated'
@@ -451,10 +460,11 @@ def list_files():
                 "display_name": f.stem.replace('_certificate', '').replace('_', ' ')
             })
             
+        individual = []
         # Include PDFs from 'individual'
         for f in INDIVIDUAL_DIR.glob("*.pdf"):
             if f.name.startswith("~$"): continue
-            generated.append({
+            individual.append({
                 "name": f.name,
                 "path": str(f),
                 "generated_at": datetime.fromtimestamp(f.stat().st_mtime).isoformat() if hasattr(f.stat(), 'st_mtime') else None,
@@ -481,8 +491,6 @@ def list_files():
                     "download_url": f"/files/docx/{f.name}", # Direct download for DOCX
                     "display_name": f.stem.replace('_certificate', '').replace('_', ' ')
                 })
-
-        downloaded = []
 
         downloaded = []
         # Include PDF and ZIP
@@ -516,6 +524,7 @@ def list_files():
 
         return jsonify({
             "generated": generated,
+            "individual": individual,
             "downloaded": downloaded,
             "email": email_drafts
         })
@@ -572,10 +581,11 @@ def serve_email_file(filename):
 
 @dashboard_api.route("/api/dashboard/folders", methods=["GET"])
 def get_folders():
-    """Return folder paths for generated, downloaded, and email certificates"""
+    """Return folder paths for generated, individual, downloaded, and email certificates"""
     try:
         return jsonify({
             "generated_folder": str(GENERATED_DIR),
+            "individual_folder": str(INDIVIDUAL_DIR),
             "downloaded_folder": str(DOWNLOAD_DIR),
             "email_folder": str(EMAIL_DIR)
         })
@@ -594,6 +604,8 @@ def open_folder(folder_type):
         
         if folder_type == "generated":
             folder_path = GENERATED_DIR
+        elif folder_type == "individual":
+            folder_path = INDIVIDUAL_DIR
         elif folder_type == "downloaded":
             folder_path = DOWNLOAD_DIR
         elif folder_type == "email":

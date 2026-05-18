@@ -466,6 +466,15 @@ function closeGeneratedModal() {
   document.getElementById("generatedModal").classList.remove("active");
 }
 
+function openIndividualModal() {
+  document.getElementById("individualModal").classList.add("active");
+  refreshIndividualFiles();
+}
+
+function closeIndividualModal() {
+  document.getElementById("individualModal").classList.remove("active");
+}
+
 function openDownloadedModal() {
   document.getElementById("downloadedModal").classList.add("active");
   refreshDownloadedFiles();
@@ -507,6 +516,41 @@ async function refreshGeneratedFiles() {
     }
   } catch (err) {
     console.error("Error loading generated files:", err);
+  }
+}
+
+async function refreshIndividualFiles() {
+  try {
+    const res = await fetch("/api/dashboard/files");
+    if (!res.ok) throw new Error("API error");
+    const data = await res.json();
+
+    if (!data.individual || data.individual.length === 0) {
+      document.getElementById("individual-folder").innerHTML = '<div class="empty-state"><div class="empty-icon"></div><div>No specific certificates generated yet</div></div>';
+    } else {
+      document.getElementById("individual-folder").innerHTML = data.individual.map(f => `
+        <div class="file-card">
+          <div class="file-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="file-name" title="${f.display_name}">${f.display_name}</div>
+          <div class="file-date">${formatDate(f.generated_at)}</div>
+          <div class="file-actions">
+            <button class="btn-icon btn-view-file" title="View" onclick="openFile('${f.url}')">
+               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+            <button class="btn-icon btn-download-file" title="Download" onclick="downloadFile('${f.download_url}')">
+               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <button class="btn-icon btn-delete-file" title="Delete" onclick="deleteCertificate('${f.name}', 'generated')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    console.error("Error loading specific files:", err);
   }
 }
 

@@ -105,6 +105,9 @@
             <button class="action-btn btn-view" onclick="openGeneratedModal()">
               View Generated
             </button>
+            <button class="action-btn btn-view" onclick="openIndividualModal()" style="background: var(--primary);">
+              View Specific
+            </button>
             <button class="action-btn btn-view" onclick="openDownloadedModal()">
               View Downloaded
             </button>
@@ -172,6 +175,31 @@
           <div class="empty-state">
             <div class="empty-icon"></div>
             <div>No certificates generated yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Specifically Generated (Individual) Certificates Modal -->
+  <div id="individualModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Specifically Generated Certificates (Storage)</h2>
+        <button class="modal-close" onclick="closeIndividualModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <button class="btn-open-folder" onclick="openFolder('individual')" style="margin-bottom: 20px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+          Open System Folder
+        </button>
+        <div id="individual-folder" class="files-grid">
+          <div class="empty-state">
+            <div class="empty-icon"></div>
+            <div>No specific certificates generated yet</div>
           </div>
         </div>
       </div>
