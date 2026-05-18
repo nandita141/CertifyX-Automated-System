@@ -67,8 +67,8 @@ def get_stats():
         # Count downloaded
         downloaded_count = len(list(DOWNLOAD_DIR.glob("*.pdf"))) + len(list(DOWNLOAD_DIR.glob("*.zip")))
         
-        # Emails from activity log table
-        cursor.execute("SELECT COUNT(*) FROM activity_log WHERE type = 'email_sent'")
+        # Emails from students table (unique students who received emails)
+        cursor.execute("SELECT COUNT(*) FROM students WHERE email_sent = 1")
         emails_sent = cursor.fetchone()[0]
         
         conn.close()
