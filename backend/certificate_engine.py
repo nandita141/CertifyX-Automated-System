@@ -146,7 +146,7 @@ class CertificateGenerator:
                 except Exception:
                     pass
 
-            result_str = str(val)
+            result_str = str(val).strip()
             
             if column in self.cert_config.get("force_uppercase", []):
                 return result_str.upper()
@@ -368,6 +368,16 @@ class CertificateGenerator:
 
     def batch_convert_pdf(self, source_dir, output_dir):
         """Convert all DOCX files in a folder to PDF using win32com for maximum image quality."""
+        import subprocess
+        try:
+            # Proactively kill any hung WINWORD.EXE processes to release locks
+            subprocess.run(["taskkill", "/f", "/im", "WINWORD.EXE"], 
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+
+        word = None
+        com_initialized = False
         try:
             import win32com.client
             import pythoncom
@@ -375,12 +385,14 @@ class CertificateGenerator:
             
             # Initialize COM in the current thread
             pythoncom.CoInitialize()
+            com_initialized = True
             
             print(f"Converting files in {source_dir} to PDF (High Quality Mode)...")
             
             # Use DispatchEx to get a clean Word instance
             word = win32com.client.DispatchEx("Word.Application")
             word.Visible = False
+            word.DisplayAlerts = 0  # Suppress all alerts/popups
             
             wdFormatPDF = 17
             wdExportOptimizeForPrint = 0
@@ -390,9 +402,12 @@ class CertificateGenerator:
             
             success = True
             for docx_file in source_path.glob("*.docx"):
+                # Skip temporary files
+                if docx_file.name.startswith("~$"):
+                    continue
                 pdf_file = output_path / (docx_file.stem + ".pdf")
                 try:
-                    doc = word.Documents.Open(str(docx_file), ReadOnly=True)
+                    doc = word.Documents.Open(str(docx_file), ReadOnly=True, ConfirmConversions=False)
                     # ExportAsFixedFormat explicitly forces high-quality print optimization
                     doc.ExportAsFixedFormat(
                         OutputFileName=str(pdf_file),
@@ -412,14 +427,24 @@ class CertificateGenerator:
                 except Exception as e:
                     print(f"Error converting {docx_file.name}: {e}")
                     success = False
-                    
-            word.Quit()
-            pythoncom.CoUninitialize()
+            
             return success, None
             
         except Exception as e:
             print(f"Batch conversion failed: {e}")
             return False, str(e)
+        finally:
+            # Guarantee cleanup of Word COM references and uninitialization
+            if word is not None:
+                try:
+                    word.Quit()
+                except Exception:
+                    pass
+            if com_initialized:
+                try:
+                    pythoncom.CoUninitialize()
+                except Exception:
+                    pass
 
     
     # MAIN WORKFLOW
